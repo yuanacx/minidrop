@@ -1,0 +1,8 @@
+- regex: ".*malloc.*"
+  advice: "考虑 jemalloc 或对象池，减少 glibc malloc 热点。"
+- regex: ".*pthread.*"
+  advice: "检查锁竞争；考虑减小临界区或使用无锁结构。"
+- regex: ".*json.*"
+  advice: "JSON 序列化热点；考虑预分配 buffer 或更快库。"
+- regex: ".*sleep.*"
+  advice: "线程可能在 sleep/wait；核对业务逻辑与 IO 阻塞。"
