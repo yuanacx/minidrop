@@ -1,0 +1,97 @@
+:root {
+  --primary: #0052d9;
+  --primary-hover: #003cab;
+  --bg: #f0f2f5;
+  --card: #fff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --pending: #fef3c7;
+  --pending-text: #92400e;
+  --running: #dbeafe;
+  --running-text: #1e40af;
+  --done: #d1fae5;
+  --done-text: #065f46;
+  --failed: #fee2e2;
+  --failed-text: #991b1b;
+}
+
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+nav {
+  background: var(--card); padding: 14px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 20px;
+}
+nav strong { font-size: 1.1rem; margin-right: 8px; }
+.container { max-width: 980px; margin: 24px auto; padding: 0 16px 48px; }
+.card {
+  background: var(--card); border-radius: 12px; padding: 20px;
+  margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border: 1px solid var(--border);
+}
+.hero h1 { margin: 0 0 8px; font-size: 1.5rem; }
+.muted { color: var(--muted); font-size: 0.92rem; }
+button {
+  border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.95rem;
+}
+button.primary, button:not(.ghost):not(.tabs button) {
+  background: var(--primary); color: #fff;
+}
+button.primary:hover { background: var(--primary-hover); }
+button.ghost { background: #f3f4f6; color: var(--text); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+input, select {
+  width: 100%; padding: 8px 10px; margin-top: 4px;
+  border: 1px solid var(--border); border-radius: 6px;
+}
+table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+td, th { border-bottom: 1px solid var(--border); padding: 10px 8px; text-align: left; }
+th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.tabs { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+.tabs button {
+  background: #f3f4f6; color: var(--text); padding: 8px 14px;
+}
+.tabs button.active { background: var(--primary); color: #fff; }
+.status-badge {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 600;
+}
+.status-pending { background: var(--pending); color: var(--pending-text); }
+.status-running { background: var(--running); color: var(--running-text); }
+.status-done { background: var(--done); color: var(--done-text); }
+.status-failed { background: var(--failed); color: var(--failed-text); }
+.dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+}
+.dot.online { background: #22c55e; }
+.dot.offline { background: #9ca3af; }
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: var(--card); border-radius: 12px; padding: 24px; width: min(480px, 92vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,.15);
+}
+.modal h3 { margin: 0 0 16px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid .span-2 { grid-column: span 2; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.task-header h2 { margin: 0 0 4px; }
+.task-header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reason-line { margin: 8px 0 0; color: var(--muted); }
+.tab-panel { min-height: 200px; }
+.center { text-align: center; padding: 32px; }
+.spinner {
+  width: 36px; height: 36px; margin: 0 auto 12px;
+  border: 3px solid var(--border); border-top-color: var(--primary);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-text { color: #dc2626; }
+.history-block { margin-top: 20px; font-size: 0.9rem; color: var(--muted); }
+.advice-list { padding-left: 20px; line-height: 1.7; }
+code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }
