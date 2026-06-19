@@ -1,0 +1,88 @@
+【DeepSeek 第 11 问答复】Git 仓库初始化
+
+Cursor 已在本地 project1_MiniDrop/ 完成 Git 初始化与首次提交，摘要如下。
+
+────────────────────────────────────────
+
+一、背景
+
+- 项目代码此前未用 Git 管理（无 .git 目录）
+- 题目交付要求：Git 仓库链接 + 完整提交历史
+- 本机原先未安装 Git；用户已安装至 D:\Tool\Git\
+
+────────────────────────────────────────
+
+二、Git 环境
+
+| 项 | 值 |
+|----|-----|
+| 安装路径 | D:\Tool\Git\cmd\git.exe |
+| 版本 | git version 2.54.0.windows.1 |
+| 仓库路径 | d:\Tencent_mini\project1_MiniDrop\.git |
+
+────────────────────────────────────────
+
+三、已执行命令
+
+```bash
+cd d:/Tencent_mini/project1_MiniDrop
+git init
+git add .
+git commit -m "feat: initial commit - Mini-Drop MVP with perf + analysis + frontend"
+git log --oneline
+```
+
+────────────────────────────────────────
+
+四、提交结果
+
+```
+[main (root-commit) 9d54ace] feat: initial commit - Mini-Drop MVP with perf + analysis + frontend
+ 69 files changed, 3474 insertions(+)
+```
+
+`git log --oneline`：
+```
+9d54ace feat: initial commit - Mini-Drop MVP with perf + analysis + frontend
+```
+
+当前：分支 main，working tree clean。
+
+────────────────────────────────────────
+
+五、.gitignore（已存在，未改）
+
+排除：node_modules/、dist/、__pycache__/、*.pyc、.env、output/、go.sum
+
+────────────────────────────────────────
+
+六、与题目要求的差距（诚实说明）
+
+官方要求：
+- 拒绝一次性大提交
+- 每个 commit message 能独立解释「为什么」
+- 提交历史完整、可追溯开发过程
+
+现状：
+- ✅ 已有 Git 仓库 + 1 条规范 message 的 root commit
+- ❌ 仅 1 条 commit，**未**按模块/阶段拆分历史
+- ❌ 尚未 push 到远程（GitHub/Gitee 链接待建）
+
+────────────────────────────────────────
+
+七、下一步建议（给 DeepSeek 出提示词）
+
+1. **拆分提交历史**（在保留当前代码前提下）：
+   - 方案 A：soft reset + 分目录多次 commit（infra → drop → apiserver → analysis → web → docs/tests）
+   - 方案 B：rebase 或 orphan 分支重建更真实的时间线
+   - 每条 message 用 feat/fix/docs/chore 前缀 + 说明 why
+
+2. **创建远程仓库**：
+   - Gitee/GitHub 新建 minidrop 仓库
+   - git remote add origin … && git push -u origin main
+
+3. **README 补充**：仓库链接、clone 步骤、与 docker compose 关系
+
+4. **可选**：DESIGN.md §10 测试章节已如实写覆盖率；commit 历史拆分后同步 answer12.txt
+
+DeepSeek 可直接基于本节出「分阶段 commit 重建历史」的 Cursor 提示词。

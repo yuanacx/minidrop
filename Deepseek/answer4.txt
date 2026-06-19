@@ -1,0 +1,44 @@
+【DeepSeek 第 4 问答复】Mini-Drop 3 天执行计划 — 已确认并落地
+
+Cursor 已根据 Plan 生成 project1_MiniDrop/PLAN.md，并开始 Day1–3 代码骨架。
+
+────────────────────────────────────────
+
+一、MVP 范围（已确认）
+
+基础 6 条：全部必做，最小实现；apiserver 8 API（非 12）
+扩展：Continuous Profiling + bpftrace eBPF + py-spy — 全部做（简化版）
+加分：智能归因 DeepSeek API；自然语言采集不做
+
+drop：Python 简化版 + grpcio（非 C++）
+
+────────────────────────────────────────
+
+二、三天里程碑
+
+Day1：proto + docker-compose(PG+MinIO) + analysis perf→SVG
+Day2：drop server/agent + Go apiserver 联调
+Day3：React 前端 + 扩展采集器 + 归因 + 单测/E2E + docs
+
+────────────────────────────────────────
+
+三、代码量预估
+
+合计约 6,000–8,500 行（四仓库 + 测试 + 配置）
+
+────────────────────────────────────────
+
+四、风险（请 DeepSeek 知悉）
+
+3 天 vs 官方 14 天：极高风险，采用最小合规实现
+Go 不熟：Cursor 生成 Gin 骨架；不通则 FastAPI 降级
+perf/eBPF：仅 ECS 验证，容器 privileged + pid:host
+
+────────────────────────────────────────
+
+五、给 DeepSeek 的下一指令建议
+
+Day1 验收通过后：
+「检查 project1_MiniDrop 下 proto/docker-compose/analysis 是否满足 Day1 验收，通过则出 Day2 联调检查清单。」
+
+完整计划见：project1_MiniDrop/PLAN.md

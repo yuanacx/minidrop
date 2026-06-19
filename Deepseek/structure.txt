@@ -1,0 +1,29 @@
+project1_MiniDrop 工作区结构
+============================
+更新时间：2026-06-20（Git 初始化，answer11）
+
+Tencent_mini/
+├── INITIAL/
+│   ├── Mini-Drop+题目.md
+│   └── drop系统复刻指南.md
+│
+└── project1_MiniDrop/
+    ├── PLAN.md                     3 天执行计划（已确认）
+    ├── readme.txt
+    ├── docker-compose.yml
+    ├── Makefile
+    ├── proto/                      gRPC 契约 + 生成脚本
+    ├── drop/                       Python server + agent
+    ├── apiserver/                  Go Gin + GORM
+    ├── analysis/                   Python 火焰图/TopN/归因
+    ├── web_frontend/               React SPA
+    ├── docs/                       设计文档（DESIGN.md 已同步）
+    ├── tests/                      单测 + E2E
+    ├── .git/                       Git 仓库（main，1 commit 9d54ace）
+    └── Deepseek/
+        ├── structure.txt           本文件
+        ├── answer1.txt … answer11.txt
+
+阿里云 ECS：47.113.102.23  全链路+前端 ✅（98b6424f 火焰图可展示）
+
+给 DeepSeek：structure.txt + 最新 answerN.txt

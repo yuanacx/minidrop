@@ -1,0 +1,27 @@
+Internet1 — Mini-Drop 本地材料摘要
+====================================
+（DeepSeek 无法打开链接时使用）
+
+项目1 是什么
+------------
+复刻 Drop：Linux 上按需采集进程 CPU/内存/IO，Web 上看火焰图与热点分析。
+组件：Web UI + apiserver(Go) + drop(C++ Agent/Server) + analysis(Python)。
+
+基础能力（必做）
+----------------
+- docker compose 一键启动
+- Web 下发 PID/时长/采样率 → Agent 采集 → Analyzer 出图
+- 状态机：PENDING→RUNNING→UPLOADING→DONE/FAILED，落库带 reason
+- Agent 5s 心跳，Server 30s 判离线，有审计日志
+- 单测 ≥50%，≥3 个 E2E 集成测试
+
+扩展能力
+--------
+- Continuous Profiling（时间轴回溯）
+- eBPF 采集器 + 用户态采集器（py-spy/async-profiler/pprof 选一）
+
+加分项（推荐智能归因）
+----------------------
+LLM 只能调用定义好的工具，产出可验证的归因结论。
+
+详细架构见 INITIAL/drop系统复刻指南.md

@@ -1,0 +1,77 @@
+【DeepSeek 第 3 问答复】项目理解补充 + 待讨论问题 + Cursor 建议
+
+（无对应单次提示词；汇总当前认知，方便继续和 DeepSeek 聊）
+
+────────────────────────────────────────
+
+一、我对 Mini-Drop 的理解（通俗版）
+
+Drop 解决的是：**线上进程慢了/CPU 高了，怎么快速采样本、看火焰图、找热点函数**。
+
+Mini-Drop 不是做量化预测，也不是重写 5 万行原版，而是做一个**能演示完整链路**的缩小版：
+  用户点按钮 → 任务进队列 → Agent 跑 perf → 文件进 MinIO → Python 出 SVG → 浏览器看图。
+
+最难的三块（个人判断）：
+  1. C++ drop 的 gRPC + fork perf + 心跳（和 Windows 开发环境割裂）
+  2. eBPF 采集器（内核权限 + 国内文档少）
+  3. 四仓库联调 + 10 分钟内可复现（docker-compose 要稳）
+
+────────────────────────────────────────
+
+二、当前进度
+
+| 项 | 状态 |
+|----|------|
+| 读 INITIAL 题目 + 复刻指南 | ✅ |
+| 工作区 project1_MiniDrop/ + Deepseek/ | ✅ |
+| 阿里云 ECS + Docker + Compose | ✅ answer2 |
+| 四仓库代码 | ❌ 未开始 |
+| docker-compose.yml | ❌ 未开始 |
+| Git 仓库 | ❌ 未开始 |
+
+────────────────────────────────────────
+
+三、想和 DeepSeek 继续聊的问题
+
+1. **大一 + 两周**：是否接受「drop 先用 Python/Go 重写简化 Agent」，后面再换 C++？还是题目硬性要求 C++？
+2. **智能归因加分项**：没有腾讯混元 API 时，能否用 DeepSeek/OpenAI API + 固定 tool schema 凑数？评测报告格式有模板吗？
+3. **Continuous Profiling**：扩展能力是否可 Phase2 再做，第一版只做按需单次采集？
+4. **单测 ≥50%**：四仓库分开算还是整体？Mock gRPC 还是集成测试为主？
+5. **演示视频 15 分钟**：是否必须 eBPF 现场 dd/fio，还是扩展能力可部分演示？
+
+────────────────────────────────────────
+
+四、给 DeepSeek 的排期建议（供讨论）
+
+**Week 1 目标（能 demo 一条链）：**
+- D1–D2：proto 定稿 + docker-compose（PG + MinIO + 占位）
+- D3–D5：apiserver 最小 POST /tasks + mock Agent 回结果
+- D6–D7：analysis 本地 perf.data → svg；前端 iframe 看图
+
+**Week 2 目标（补硬指标）：**
+- 真 drop Agent（至少 perf 一种采集器）
+- 状态机落库 + reason + 心跳离线
+- eBPF 或 py-spy 二选一
+- 设计文档 + 视频 + commit 规范
+
+────────────────────────────────────────
+
+五、给 Cursor 的下一条任务（等 DeepSeek 确认后可执行）
+
+若 DeepSeek 同意「先 infra 后 drop」：
+
+```
+任务：在 47.113.102.23 的 /opt/minidrop 创建 docker-compose.yml
+包含 postgres:14、minio/minio，环境变量与复刻指南 §5.1 一致；
+docker compose up -d 后 curl 验证 5432/9000；
+把 compose 文件同步到 project1_MiniDrop/docker-compose.yml 并 git init。
+```
+
+────────────────────────────────────────
+
+六、answer 文件编号约定（project1）
+
+answer1.txt  项目目标、材料、初始问题
+answer2.txt  阿里云 Docker 安装实测
+answer3.txt  理解补充、待讨论、下一步建议（本文件）
+answer4.txt+ 随 DeepSeek 每轮提示词递增

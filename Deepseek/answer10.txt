@@ -1,0 +1,94 @@
+【DeepSeek 第 10 问答复】前端 API 路径修复 + UI 优化 + 部署验证
+
+Cursor 已修复 web_frontend 并部署至 ECS，摘要如下。
+
+────────────────────────────────────────
+
+一、问题背景
+
+- 详情页曾请求错误路径 /api/v1/tasks/result?tid= → 404
+- 后端正确路径：GET /api/v1/tasks/:tid
+- 火焰图 iframe 曾指向 http://localhost:9000/... → 浏览器无法加载
+- 详情页长期显示「加载中…」（API 失败或未处理 error）
+
+────────────────────────────────────────
+
+二、API 路径修复（web_frontend/src/api.js）
+
+| 错误 | 正确 |
+|------|------|
+| /api/v1/tasks/result?tid= | GET /api/v1/tasks/:tid |
+| /api/v1/tasks/flamegraph?tid= | /artifacts/:tid/flamegraph.svg（nginx 反代 MinIO） |
+
+关键代码：
+```javascript
+export const getTask = (tid) => api.get(`/tasks/${tid}`).then((r) => r.data)
+export const runAnalyze = (tid) => api.post(`/tasks/${tid}/analyze`).then((r) => r.data)
+export const artifactUrl = (tid, name) => `/artifacts/${tid}/${name}`
+```
+
+路由支持：
+- /task/:tid
+- /task/result?tid=xxx（兼容旧链接，从 query 读 tid）
+
+────────────────────────────────────────
+
+三、UI 优化
+
+首页：
+- Hero +「新建采样」弹窗（紧凑表单，采集器默认 perf）
+- Agent 列表：绿/灰圆点区分在线/离线，格式化最后心跳时间
+
+任务列表：
+- 状态彩色标签：PENDING 黄 / RUNNING 蓝 / DONE 绿 / FAILED 红
+
+任务详情：
+- 顶部 TID、状态、创建时间
+- 三 Tab：火焰图 / TopN 热点 / 归因建议
+- loading 动画 + error 提示
+- 火焰图 iframe → /artifacts/{tid}/flamegraph.svg
+- TopN 拉取 /artifacts/{tid}/top.json
+
+nginx.conf 新增：
+```nginx
+location /artifacts/ {
+    proxy_pass http://minio:9000/drop/;
+}
+```
+MinIO bucket drop 已设 anonymous download。
+
+────────────────────────────────────────
+
+四、部署验证（ECS /opt/minidrop）
+
+```bash
+docker compose build web_frontend
+docker compose up -d web_frontend
+```
+
+| 检查 | 结果 |
+|------|------|
+| GET /api/v1/tasks/98b6424f | ✅ 200，analysis_status=done |
+| GET /artifacts/98b6424f/flamegraph.svg | ✅ 200 image/svg+xml |
+| http://47.113.102.23/ | ✅ 首页新 UI |
+| /task/result?tid=98b6424f | ✅ 无 404，火焰图可显示 |
+
+────────────────────────────────────────
+
+五、本地改动文件
+
+- web_frontend/src/api.js
+- web_frontend/src/pages/Home.jsx
+- web_frontend/src/pages/Tasks.jsx
+- web_frontend/src/pages/TaskResult.jsx
+- web_frontend/src/App.jsx
+- web_frontend/src/index.css
+- web_frontend/nginx.conf
+
+────────────────────────────────────────
+
+六、下一步建议（给 DeepSeek 出提示词）
+
+1. 录制 demo 视频：首页建任务 → 详情页火焰图/TopN
+2. 配置 DEEPSEEK_API_KEY 接 LLM 归因 Tab
+3. 整理 submission.zip + 学习笔记 → answer11.txt

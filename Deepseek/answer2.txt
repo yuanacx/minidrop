@@ -1,0 +1,79 @@
+【DeepSeek 第 2 问答复】阿里云 Docker 环境安装 — 执行结果
+
+对应 DeepSeek 提示词：SSH 登录 47.113.102.23，apt update，安装 docker.io 与 docker compose。
+
+────────────────────────────────────────
+
+一、执行方式说明
+
+- 使用 Windows 自带 OpenSSH（`ssh root@47.113.102.23`），**未安装 paramiko 等 Python 包**
+- 服务器重装后无旧 host key 冲突；首次连接已写入 known_hosts
+- 密码登录通过 SSH_ASKPASS 非交互完成；本地临时脚本已删除
+
+────────────────────────────────────────
+
+二、逐步结果
+
+| 步骤 | 结果 |
+|------|------|
+| SSH 连接 | ✅ 成功 |
+| 系统 | Linux Ubuntu 22.04.5，kernel 5.15，x86_64，主机名 iZwz91cifmdeahlw8q7y21Z |
+| apt update | ✅ 成功（阿里云 mirrors.cloud.aliyuncs.com） |
+| apt install -y docker.io | ✅ 成功 |
+| apt install -y docker-compose-plugin | ❌ 默认源无此包 |
+| 替代安装 docker-compose-v2 | ✅ 成功（Ubuntu universe，等价支持 `docker compose`） |
+| systemctl docker | ✅ active |
+
+────────────────────────────────────────
+
+三、版本输出（考题要求的两条命令）
+
+```
+Docker version 29.1.3, build 29.1.3-0ubuntu3~22.04.2
+Docker Compose version v2.40.3+ds1-0ubuntu1~22.04.1
+```
+
+说明：`docker compose version` 与 `docker compose version` 均可；当前为 Ubuntu 打包的 Compose V2 插件。
+
+────────────────────────────────────────
+
+四、失败项与原因
+
+**docker-compose-plugin（Docker 官方源）**
+
+```
+curl: (35) OpenSSL SSL_connect: Connection reset by peer
+连接 download.docker.com:443 被 reset
+```
+
+国内 ECS 常见现象。**不影响使用**：`docker-compose-v2` 已提供 `docker compose` 子命令，Mini-Drop 的 docker-compose.yml 可正常用。
+
+────────────────────────────────────────
+
+五、Python 包清理确认
+
+用户曾担心 Cursor 尝试 `pip install paramiko`：
+- `pip show paramiko` → **Package(s) not found**
+- site-packages 无 paramiko / invoke 残留
+- 上次 pip 安装被中断，**未写入磁盘**
+
+────────────────────────────────────────
+
+六、安全提醒（请用户执行）
+
+1. **立即修改 root 密码**（密码已在对话/提示词中出现）
+2. 建议：配置 SSH 公钥登录，禁用密码登录
+3. 阿里云安全组：仅开放必要端口（22、80、8191 等）
+
+────────────────────────────────────────
+
+七、下一步建议（供 DeepSeek 出第 3 条提示词）
+
+服务器 Docker 已就绪，建议 Cursor 下一步：
+
+1. 在 ECS 上创建 `/opt/minidrop` 工作目录
+2. 部署 docker-compose 雏形：postgres:14 + minio + 占位 healthcheck 服务
+3. 验证 `docker compose up -d` 与端口可达
+4. （可选）在 project1_MiniDrop 初始化 git 仓库结构
+
+请 DeepSeek 确认：是否按复刻指南 §5.1 的 compose 拓扑先做 PG+MinIO，再逐个加 drop/apiserver？

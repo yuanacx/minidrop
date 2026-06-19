@@ -1,0 +1,82 @@
+【DeepSeek 第 7 问答复】make demo 验收结果
+
+Cursor 在 47.113.102.23:/opt/minidrop 执行 make demo 及后续验证，摘要如下。
+
+────────────────────────────────────────
+
+一、make demo 执行结果：✅ 成功
+
+命令：cd /opt/minidrop && make demo
+实际执行：docker compose up -d --build
+
+构建：drop_server / drop_agent / apiserver / web_frontend 均 Built（多数 CACHED）
+启动：6 容器全部 Up，末尾输出：
+  Open http://localhost — apiserver :8191
+
+docker compose ps（2026-06-20 00:30 CST）：
+- minidrop-postgres-1       Up (healthy)   :5432
+- minidrop-minio-1          Up (healthy)   :9000-9001
+- minidrop-drop_server-1    Up             :50051
+- minidrop-drop_agent-1     Up             (host, privileged)
+- minidrop-apiserver-1      Up             :8191
+- minidrop-web_frontend-1   Up             :80
+
+说明：Makefile 中 demo 目标仅拉起栈，不会自动创建采集任务或生成火焰图。
+
+────────────────────────────────────────
+
+二、验收项检查结果
+
+1. ls -la /opt/minidrop/minio_data/
+   ❌ 目录不存在
+   原因：docker-compose.yml 未挂载 minio_data，MinIO 数据在容器内 /data/
+
+2. MinIO 内文件
+   容器 /data/ 仅有 .minio.sys，无 perf.data / 火焰图 SVG
+
+3. GET http://127.0.0.1:8191/api/v1/tasks（make demo 刚完成后）
+   {"code":0,"data":[]}
+   符合预期（无自动任务）
+
+4. GET http://47.113.102.23:8191/api/v1/tasks（外网）
+   ❌ 本机请求 10s 超时
+   原因：阿里云安全组可能未放行 8191
+
+────────────────────────────────────────
+
+三、全链路探测（额外跑 E2E，未跑通）
+
+执行 tests/e2e/run_e2e.sh 时发现：
+
+| 问题 | 日志/现象 |
+|------|-----------|
+| E2E 脚本 | 服务器无 jq，脚本中断 |
+| 数据库 schema | ERROR: column "tid" does not exist (SQLSTATE 42703) |
+| drop_agent perf | perf not found for kernel 5.15.0-179，需 linux-tools-5.15.0-179-generic |
+| 任务状态 | POST 创建任务后 GET /tasks/:tid 返回 404 |
+| MinIO 产出 | 无 perf.data / 火焰图 |
+
+apiserver 日志（关键）：
+  SELECT * FROM "tasks" WHERE tid = '765be1c1' ...
+  ERROR: column "tid" does not exist
+
+drop_agent 日志（关键）：
+  WARNING: perf not found for kernel 5.15.0-179
+  WARNING cp failed: perf record ... exit status 2
+
+────────────────────────────────────────
+
+四、结论
+
+- 基础设施层（make demo）：✅ 通过 — 栈可正常 build/up
+- 业务全链路（perf → MinIO → 分析 → 任务可查）：❌ 未通过
+
+────────────────────────────────────────
+
+五、下一步建议（给 DeepSeek 出提示词）
+
+1. 修 apiserver 数据库迁移：确保 tasks 表含 tid 等字段（AutoMigrate 或 SQL 脚本）
+2. 修 drop/Dockerfile：安装与宿主机内核匹配的 linux-tools（5.15.0-179-generic）
+3. 阿里云安全组放行 80 / 8191 / 9000
+4. 服务器安装 jq，重跑 tests/e2e/run_e2e.sh
+5. 验收通过后：录制 demo 视频，结果记 answer8.txt

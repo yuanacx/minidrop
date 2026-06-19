@@ -1,0 +1,26 @@
+【DeepSeek 第 5 问答复】Plan 已落地 — 四仓库骨架完成
+
+Cursor 已按 3 天 Plan 在 project1_MiniDrop/ 生成代码骨架：
+
+────────────────────────────────────────
+
+一、已创建
+
+- PLAN.md / README.md / docker-compose.yml / Makefile
+- proto/（4 个 .proto）
+- drop/（Python server+agent，perf/pyspy/bpftrace/CP 采集器）
+- apiserver/（Go Gin + GORM，8 API + 状态机 history）
+- analysis/（hotmethod_analyzer + TopN + 规则 + llm_attribution）
+- web_frontend/（React + nginx 反代 + ECharts eBPF Tab）
+- tests/（test_topn.py + e2e/run_e2e.sh）
+- docs/（DESIGN.md + LLM_EVAL.md）
+
+二、说明
+
+- drop 控制面为 HTTP/JSON（语义对齐 proto），非 C++ gRPC，见 DESIGN.md 取舍
+- 需在 ECS 上 docker compose build/up 做真实 perf/eBPF 验证
+- go mod tidy / npm install 在 Linux 构建时执行
+
+三、下一步
+
+DeepSeek 可出提示词：「在 47.113.102.23 部署并跑通 make demo，记录验收日志到 answer6.txt」

@@ -1,0 +1,66 @@
+【DeepSeek 第 1 问答复】项目1 启动 — Mini-Drop 是什么、要交什么
+
+问题：项目1 具体做什么？和项目3 有什么不同？本地环境怎么规划？
+
+────────────────────────────────────────
+
+一、项目1 是什么？
+
+Mini-Drop = 在两周内**独立复刻**腾讯内部 Drop 性能分析平台的精简版。
+
+一句话：Linux 上部署 Agent，Web 上点一下采集某进程 CPU/内存/IO，数据上传后生成火焰图、热点分析；可选 LLM 智能归因。
+
+四组件架构（官方复刻指南）：
+  drop/           C++ — Agent + Server，gRPC 心跳与任务下发
+  apiserver/      Go  — REST API、PostgreSQL、对象存储（MinIO 替代 COS）
+  analysis/       Py  — perf.data → 火焰图 SVG / TopN / 规则建议
+  web_frontend/   React — 建任务、轮询状态、看火焰图
+
+验收标准：`docker compose up` 一键启动 → Web 建任务 → 看到火焰图。
+
+────────────────────────────────────────
+
+二、和项目3 的区别
+
+| | 项目3 Skill 评估 | 项目1 Mini-Drop |
+|--|------------------|-----------------|
+| 交付物 | YAML 文档 + test_report | **可运行的代码 + Git + 设计文档 + 演示视频** |
+| 技术栈 |  mostly Markdown/YAML | C++/Go/Python/React + Docker |
+| 运行环境 | 本地 Python/Node 即可 | **需要 Linux 服务器**（perf/eBPF 权限） |
+| 周期 | 已基本完成 | 二周，刚启动 |
+
+────────────────────────────────────────
+
+三、官方材料位置（INITIAL/，只读）
+
+- Mini-Drop+题目.md          基础/扩展/加分项、交付物、演示要求
+- drop系统复刻指南.md        四仓库详解、proto 契约、周计划、docker-compose 样例
+- 2026深技大腾讯mini项目考题.docx  总说明（6/21 20:00 截止：报名+答卷+笔记+简历）
+
+工作区：Tencent_mini/project1_MiniDrop/（交付物放这里）
+Deepseek 答复：project1_MiniDrop/Deepseek/answerN.txt
+
+────────────────────────────────────────
+
+四、学生背景与约束
+
+- 刘子毅，深技大，25级人工智能2班，大一
+- 开发机：Windows 10；Python/Node 在 D:\Tool\
+- 已购阿里云 ECS：47.113.102.23，Ubuntu 22.04（用于 Mini-Drop 部署与 perf/eBPF）
+- 协作方式：用户 ↔ DeepSeek 讨论 → DeepSeek 写提示词 → Cursor 执行
+
+────────────────────────────────────────
+
+五、想和 DeepSeek 先对齐的问题
+
+1. **两周排期**：复刻指南给 D1~D14 计划，我们应从哪一步开始？是否先 proto + docker-compose 骨架？
+2. **语言优先级**：C++/Go 都不熟的情况下，能否先做 apiserver + analysis + 前端，drop 用简化版/mock？
+3. **MVP 裁剪**：基础能力 6 条 + 扩展 2 类采集器 + 加分项，第一版只保「能出火焰图」最少要砍哪些？
+4. **Windows 开发**：C++ Agent 是否必须在 Linux 上编？本地只写 Go/Python/React，SSH 到阿里云编译 drop？
+5. **eBPF 加分**：libbpf-go / bcc / bpftrace 选哪个对大一 + 阿里云 ECS 最友好？
+
+────────────────────────────────────────
+
+六、给 DeepSeek 的建议请求
+
+请帮用户定一个「第 1 周可交付的 MVP 清单」，并生成给 Cursor 的第 2 条提示词（例如：在阿里云上搭 docker-compose 雏形：postgres + minio + 空服务占位）。

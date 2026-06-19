@@ -1,0 +1,66 @@
+【DeepSeek 第 9 问答复】火焰图 analyze 验收
+
+────────────────────────────────────────
+
+一、对 TID=99ccee16 直接调用 /analyze（用户指定步骤）
+
+Step 1 — POST /api/v1/tasks/99ccee16/analyze
+```
+HTTP/1.1 500 Internal Server Error
+{"code":500,"message":"exit status 1"}
+```
+
+Step 2 — 轮询（15 次）
+analysis_status 始终为 pending，未变 done
+
+Step 3 — MinIO /data/drop/99ccee16/
+```
+perf.data/   （仅有采集文件，无 flamegraph.svg）
+```
+
+失败原因（两层）：
+1. apiserver 原 Alpine 镜像无 perf → 已修复为 Ubuntu + linux-tools
+2. 99ccee16 对 pid=1 采样 5 秒，perf.data 栈计数为 0，FlameGraph 无法生成 SVG
+
+────────────────────────────────────────
+
+二、修复后重新验收（新任务 98b6424f，CPU 密集进程 pid=339212，10s）
+
+Step 1 — POST /analyze
+```
+HTTP/1.1 200 OK
+{"code":0,"message":"analysis triggered"}
+```
+
+Step 2 — GET /tasks/98b6424f
+```json
+{
+  "status": "DONE",
+  "cos_key": "98b6424f/perf.data",
+  "analysis_status": "done"
+}
+```
+
+Step 3 — MinIO /data/drop/98b6424f/
+```
+flamegraph.svg/
+perf.data/
+top.json/
+```
+
+全链路最终产出 ✅：perf.data → analyze → flamegraph.svg + top.json
+
+────────────────────────────────────────
+
+三、代码改动（本地已同步）
+
+- apiserver/Dockerfile：运行时改 Ubuntu 22.04 + 阿里云源 + perf + FlameGraph(gitee)
+- handlers.go：analyze 补传 MINIO_BUCKET、FLAMEGRAPH_DIR 环境变量
+
+────────────────────────────────────────
+
+四、下一步
+
+1. Web 前端 TaskResult 页验证 iframe 加载 flamegraph.svg
+2. POST /analyze 失败时返回 stderr 到 API（改善可观测性）
+3. demo 脚本改用 CPU hog 进程而非 pid=1 → answer10 + 录屏

@@ -1,0 +1,85 @@
+【DeepSeek 第 6 问答复】ECS 部署进度与结果
+
+Cursor 持续监控 47.113.102.23 上 /opt/minidrop 的 docker compose 部署，摘要如下。
+
+────────────────────────────────────────
+
+一、部署步骤完成情况
+
+| 步骤 | 状态 | 说明 |
+|------|------|------|
+| 清理并 mkdir /opt/minidrop | ✅ | 完成 |
+| 打包 scp 解压 minidrop_deploy.tar.gz | ✅ | ~30KB，已解压 |
+| docker compose up -d --build | ✅ | 经多轮修复后全部 Up |
+| 健康检查 | ✅ | 见下文 |
+
+────────────────────────────────────────
+
+二、构建过程中遇到的问题与修复
+
+1. Docker Hub 拉取超时（postgres/minio）
+   - 已在 /etc/docker/daemon.json 配置镜像加速（daocloud + 1ms.run）
+
+2. apiserver Go 模块下载超时（proxy.golang.org）
+   - Dockerfile 增加 GOPROXY=https://goproxy.cn,direct
+   - 本地同步修复 apiserver/Dockerfile
+
+3. apiserver 编译错误
+   - handlers.go 多余 import "net/http" → 已删除
+   - 本地已同步修复
+
+4. Alpine apk 安装极慢（apiserver stage-1）
+   - Dockerfile 换 mirrors.aliyun.com Alpine 源
+   - 本地已同步修复 apiserver + web_frontend Dockerfile
+
+5. web_frontend npm
+   - Dockerfile 增加 registry.npmmirror.com（预防性）
+
+6. drop_server 启动失败（exit 3）
+   - server.py 第 149 行 _offline_watchdog 应为 offline_watchdog
+   - 已 scp 修复并重建，现正常运行
+
+────────────────────────────────────────
+
+三、当前服务状态（2026-06-19 15:49 CST）
+
+docker compose ps — 6/6 Up：
+
+- postgres:14        healthy   :5432
+- minio              healthy   :9000-9001
+- drop_server        Up        :50051
+- drop_agent         Up        (host network, privileged)
+- apiserver          Up        :8191
+- web_frontend       Up        :80
+
+健康探测：
+- GET http://127.0.0.1:8191/healthz  → {"ok":true}  (200)
+- drop /docs                         → 200
+- web /                              → 200
+- minio /minio/health/live           → 200
+- GET /api/v1/tasks                  → {"code":0,"data":[]}
+
+外网访问（安全组需放行）：
+- Web UI:    http://47.113.102.23/
+- API:       http://47.113.102.23:8191/
+- MinIO:     http://47.113.102.23:9000/
+
+────────────────────────────────────────
+
+四、本地代码同步（部署期间 Cursor 已改）
+
+- apiserver/Dockerfile       GOPROXY + Alpine 阿里云源
+- apiserver/internal/handlers/handlers.go  去掉未用 import
+- web_frontend/Dockerfile    npm 镜像 + Alpine 源
+- drop/server.py             offline_watchdog 函数名修正
+
+────────────────────────────────────────
+
+五、下一步建议（给 DeepSeek 出提示词）
+
+1. 在 ECS 上跑 make demo 或 tests/e2e/run_e2e.sh，验证 perf 采集 → MinIO → 火焰图全链路
+2. 确认安全组已开 80 / 8191 / 9000（及演示需要的端口）
+3. 配置 DEEPSEEK_API_KEY 后测 LLM 归因接口
+4. 录制演示视频、整理验收日志 → answer7.txt
+
+部署主线已完成；剩余为功能验收与演示材料。
