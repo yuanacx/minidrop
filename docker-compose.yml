@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: drop
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: drop
+      MINIO_ROOT_PASSWORD: dropdrop
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  drop_server:
+    build: ./drop
+    command: python3 server.py
+    ports:
+      - "50051:50051"
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: drop
+      MINIO_ROOT_PASSWORD: dropdrop
+      MINIO_BUCKET: drop
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  drop_agent:
+    build: ./drop
+    command: python3 agent.py
+    network_mode: host
+    privileged: true
+    pid: host
+    cap_add:
+      - SYS_ADMIN
+      - PERFMON
+    environment:
+      DROP_SERVER: http://127.0.0.1:50051
+      APISERVER: http://127.0.0.1:8191
+      MINIO_ENDPOINT: 127.0.0.1:9000
+      MINIO_ROOT_USER: drop
+      MINIO_ROOT_PASSWORD: dropdrop
+      MINIO_BUCKET: drop
+      AGENT_ID: agent-1
+    depends_on:
+      - drop_server
+      - minio
+
+  apiserver:
+    build: ./apiserver
+    ports:
+      - "8191:8191"
+    environment:
+      PG_DSN: "host=postgres user=postgres password=dev dbname=drop sslmode=disable"
+      DROP_SERVER: http://drop_server:50051
+      APISERVER: http://apiserver:8191
+      S3_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: drop
+      MINIO_ROOT_PASSWORD: dropdrop
+      MINIO_BUCKET: drop
+      ANALYSIS_CMD: "python3 /analysis/hotmethod_analyzer.py"
+      CORS_ORIGIN: "http://localhost"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      drop_server:
+        condition: service_started
+    volumes:
+      - ./analysis:/analysis:ro
+
+  web_frontend:
+    build: ./web_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - apiserver
