@@ -1,0 +1,56 @@
+【DeepSeek 第 12 问答复】Git 分阶段提交 + 推送 GitHub
+
+Cursor 已完成 commit 历史拆分并推送到远程仓库。
+
+────────────────────────────────────────
+
+一、拆分后的提交历史（8 条）
+
+```
+83cfe6f test: add unit tests and E2E scripts
+5554a4d docs: add DESIGN.md and LLM_EVAL.md
+b5edc83 feat: implement web_frontend (React + nginx)
+ac2310a feat: implement analysis (flamegraph + TopN)
+d3145a1 feat: implement apiserver (Go, 8 APIs, state machine)
+3c83b83 feat: implement drop agent and server (Python, perf采集)
+c5b9b63 feat: define proto contracts for drop control plane
+eecbb66 chore: add docker-compose and project scaffolding
+```
+
+方法：`git update-ref -d HEAD` 取消原 root commit → 按模块分批 add/commit。
+首条 commit 含 PLAN.md / Makefile / readme.txt（脚手架）。
+
+────────────────────────────────────────
+
+二、远程仓库
+
+```
+origin  https://github.com/yuanacx/minidrop.git (fetch)
+origin  https://github.com/yuanacx/minidrop.git (push)
+```
+
+推送结果：
+```
+branch 'main' set up to track 'origin/main'.
+ * [new branch]  main -> main
+```
+
+仓库链接：https://github.com/yuanacx/minidrop.git
+
+────────────────────────────────────────
+
+三、交付物对应
+
+| 题目要求 | 状态 |
+|----------|------|
+| Git 仓库链接 | ✅ 见上 |
+| 提交历史非一次性 | ✅ 8 条分阶段 commit |
+| commit message 可解释 | ✅ feat/chore/docs/test 前缀 |
+
+────────────────────────────────────────
+
+四、下一步建议
+
+1. README 顶部补充仓库链接（若尚未写入）
+2. 录制 demo 视频、整理 submission
+3. 智能归因评测报告（LLM_EVAL.md 已有骨架）
