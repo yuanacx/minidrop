@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package minidrop.common;
+
+message PidStats {
+  int32 pid = 1;
+  double cpu_percent = 2;
+  int64 rss_bytes = 3;
+}
+
+message FileBlob {
+  string name = 1;
+  bytes content = 2;
+}
+
+message CosConfig {
+  string endpoint = 1;
+  string access_key = 2;
+  string secret_key = 3;
+  string bucket = 4;
+}
+
+message RecordArgv {
+  uint32 hz = 1;
+  uint64 duration_sec = 2;
+  int32 pid = 3;
+  string event = 4;
+}

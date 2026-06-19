@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package minidrop.control;
+
+import "hotmethod.proto";
+
+message CreateTaskRequest {
+  string target_ip = 1;
+  minidrop.hotmethod.TaskDesc task_desc = 2;
+}
+
+message CreateTaskResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message StatAgentRequest {
+  string target_ip = 1;
+}
+
+message StatAgentResponse {
+  bool online = 1;
+  string last_seen = 2;
+}
+
+service Control {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc StatAgent(StatAgentRequest) returns (StatAgentResponse);
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package minidrop.hotmethod;
+
+import "common.proto";
+
+message TaskDesc {
+  string task_id = 1;
+  uint32 task_type = 2;
+  uint32 profiler_type = 3;
+  minidrop.common.RecordArgv sample_argv = 4;
+  string target_ip = 5;
+  uint32 timeout_sec = 6;
+  minidrop.common.CosConfig cos_config = 7;
+  string collector = 8;  // perf | pyspy | bpftrace | cp
+}
+
+message TaskResult {
+  string task_id = 1;
+  string error_message = 2;
+  string cos_key = 3;
+  string artifact_type = 4;
+}
+
+service Hotmethod {
+  rpc NotifyResult(TaskResult) returns (NotifyAck);
+}
+
+message NotifyAck {
+  bool ok = 1;
+}
