@@ -19,6 +19,10 @@ func New() *Client {
 	if base == "" {
 		base = "http://drop_server:50051"
 	}
+	return NewWithBase(base)
+}
+
+func NewWithBase(base string) *Client {
 	return &Client{base: base, hc: &http.Client{Timeout: 10 * time.Second}}
 }
 
@@ -53,16 +57,35 @@ func (c *Client) CreateTask(targetIP, taskID string, pid, duration, hz int, coll
 	return nil
 }
 
-func (c *Client) StatAgent(ip string) (online bool, lastSeen string, err error) {
+func (c *Client) StatAgent(ip string) (online bool, lastSeen, agentIP string, err error) {
 	resp, err := c.hc.Get(c.base + "/control/stat_agent?target_ip=" + ip)
 	if err != nil {
-		return false, "", err
+		return false, "", ip, err
 	}
 	defer resp.Body.Close()
 	var out struct {
 		Online   bool   `json:"online"`
 		LastSeen string `json:"last_seen"`
+		IPAddr   string `json:"ip_addr"`
 	}
 	json.NewDecoder(resp.Body).Decode(&out)
-	return out.Online, out.LastSeen, nil
+	if out.IPAddr == "" {
+		out.IPAddr = ip
+	}
+	return out.Online, out.LastSeen, out.IPAddr, nil
+}
+
+func (c *Client) ListAgents() ([]map[string]interface{}, error) {
+	resp, err := c.hc.Get(c.base + "/control/list_agents")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Items []map[string]interface{} `json:"items"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out.Items, nil
 }

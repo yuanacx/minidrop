@@ -3,10 +3,24 @@ package state
 import "testing"
 
 func TestCanTransition(t *testing.T) {
-	if !CanTransition(StatusPending, StatusRunning) {
-		t.Fatal("pending->running")
+	cases := []struct {
+		from, to string
+		want     bool
+	}{
+		{StatusPending, StatusRunning, true},
+		{StatusPending, StatusFailed, true},
+		{StatusPending, StatusDone, false},
+		{StatusRunning, StatusUploading, true},
+		{StatusRunning, StatusFailed, true},
+		{StatusUploading, StatusDone, true},
+		{StatusDone, StatusRunning, false},
+		{StatusFailed, StatusPending, false},
+		{"UNKNOWN", StatusRunning, false},
 	}
-	if CanTransition(StatusDone, StatusRunning) {
-		t.Fatal("done->running should fail")
+	for _, c := range cases {
+		got := CanTransition(c.from, c.to)
+		if got != c.want {
+			t.Fatalf("%s->%s want %v got %v", c.from, c.to, c.want, got)
+		}
 	}
 }

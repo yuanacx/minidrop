@@ -55,6 +55,7 @@ func (a *API) Register(r *gin.Engine) {
 	v1.GET("/tasks/:tid", a.getTask)
 	v1.POST("/tasks/:tid/analyze", a.runAnalysis)
 	v1.POST("/internal/task_result", a.taskResult)
+	v1.POST("/internal/agent_audit", a.agentAudit)
 }
 
 func (a *API) listAgents(c *gin.Context) {
@@ -62,8 +63,28 @@ func (a *API) listAgents(c *gin.Context) {
 	if ip == "" {
 		ip = "127.0.0.1"
 	}
-	online, last, _ := a.Drop.StatAgent(ip)
-	c.JSON(200, gin.H{"code": 0, "data": []gin.H{{"ip": ip, "online": online, "last_seen": last}}})
+	if items, err := a.Drop.ListAgents(); err == nil {
+		data := make([]gin.H, 0, len(items))
+		for _, item := range items {
+			agentIP, _ := item["ip"].(string)
+			online, _ := item["online"].(bool)
+			if ip != "" && agentIP != ip && !(ip == "127.0.0.1" && online) {
+				continue
+			}
+			data = append(data, gin.H{
+				"ip":        agentIP,
+				"hostname":  item["hostname"],
+				"online":    online,
+				"last_seen": item["last_seen"],
+			})
+		}
+		if len(data) > 0 {
+			c.JSON(200, gin.H{"code": 0, "data": data})
+			return
+		}
+	}
+	online, last, agentIP, _ := a.Drop.StatAgent(ip)
+	c.JSON(200, gin.H{"code": 0, "data": []gin.H{{"ip": agentIP, "online": online, "last_seen": last}}})
 }
 
 func (a *API) createTask(c *gin.Context) {
@@ -171,4 +192,26 @@ func (a *API) runAnalysis(c *gin.Context) {
 	task.AnalysisStatus = "done"
 	a.DB.Save(&task)
 	c.JSON(200, gin.H{"code": 0, "message": "analysis triggered"})
+}
+
+func (a *API) agentAudit(c *gin.Context) {
+	var req struct {
+		AgentID string `json:"agent_id" binding:"required"`
+		Event   string `json:"event" binding:"required"`
+		Detail  string `json:"detail"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"code": 400, "message": err.Error()})
+		return
+	}
+	if err := a.DB.Create(&models.AgentAudit{
+		AgentID: req.AgentID,
+		Event:   req.Event,
+		Detail:  req.Detail,
+		TS:      time.Now(),
+	}).Error; err != nil {
+		c.JSON(500, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"code": 0})
 }

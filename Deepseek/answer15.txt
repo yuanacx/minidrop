@@ -1,0 +1,95 @@
+【DeepSeek 第 15 问答复】P0 演示脚本 + P1 单测/审计/30s 离线
+
+Cursor 已按批次完成 P0/P1，代码已 push GitHub，ECS 已重建 drop_server + apiserver。
+
+────────────────────────────────────────
+
+一、P0：演示视频录制指南
+
+文件：`docs/DEMO_VIDEO.md`
+
+内容（≤15min 分镜）：
+1. 开场架构 + docker compose ps
+2. 首页 Agent 在线 + 最后心跳
+3. 新建 perf 采样（CPU hog PID，非 pid=1）
+4. 状态 PENDING→RUNNING→UPLOADING→DONE（history reason）
+5. 火焰图 Tab 交互
+6. TopN / 归因 Tab
+7. 口述 eBPF/CP/py-spy 后端实现与前端缺口
+8. 可选 dd IO + bpftrace CLI
+9. 收尾：国内镜像 + IP 回退设计
+
+────────────────────────────────────────
+
+二、P1：单测补全
+
+新增文件：
+- `apiserver/internal/handlers/handlers_test.go` — CreateTask/GetTask/ListTasks/ListAgents/Analyze404/AgentAudit/TaskResult
+- `drop/agent_test.py` — 心跳拉任务、notify、execute_task(mock perf)
+- `drop/server_test.py` — 注册、stat_agent 回退、任务下发、30s 离线逻辑
+- `analysis/hotmethod_analyzer_test.py` — mock perf_to_flamegraph + main(cos-key)
+- `tests/test_advisor.py` — 规则建议
+- `apiserver/go.mod` + `go.sum` — 增加 sqlite 测试依赖
+
+Makefile `make test`：
+- Go: `go test ./... -cover` 
+- Python analysis: `--cov-fail-under=50`
+- Python drop: `--cov-fail-under=50`
+
+验证结果（2026-06-20）：
+
+| 环境 | 命令 | 结果 |
+|------|------|------|
+| 本地 Windows | pytest 全套 | **17 passed** |
+| ECS drop 容器 | pytest agent_test + server_test | **10 passed** |
+| ECS 宿主机 | pytest analysis + tests/ | **7 passed** |
+| ECS golang:1.21 + goproxy.cn | go test ./... | handlers **68.5%**, state **100%**, total **70.4%** |
+
+────────────────────────────────────────
+
+三、P1：审计日志持久化
+
+1. `apiserver/internal/handlers/handlers.go`
+   - 新增 `POST /api/v1/internal/agent_audit` → 写入 `agent_audits` 表（GORM AgentAudit model 已有）
+
+2. `drop/server.py`
+   - `audit()` 在内存 `_audit` 之外调用 `_persist_audit()` POST 到 apiserver
+   - docker-compose drop_server 增加 `APISERVER: http://apiserver:8191`
+
+3. 前端 Agent 列表已展示 `last_seen`（Home.jsx 原有字段）
+
+────────────────────────────────────────
+
+四、P1：Agent 离线判定 30s
+
+`drop/server.py`：
+- `OFFLINE_TIMEOUT_SEC = 30`（env `AGENT_OFFLINE_SEC`）
+- watchdog 每 **30s** 检查一次
+- `last_seen_ts` 超过 30s → online=false → audit agent_offline → 持久化 PG
+
+────────────────────────────────────────
+
+五、ECS 部署
+
+```bash
+cd /opt/minidrop && docker compose up -d --build drop_server apiserver
+curl -s 'http://127.0.0.1:8191/api/v1/agents?target_ip=127.0.0.1'
+# {"code":0,"data":[{"hostname":"...","ip":"172.18.225.143","online":true,"last_seen":"..."}]}
+```
+
+────────────────────────────────────────
+
+六、Git
+
+commit: feat: add demo script, unit tests, agent audit persistence and 30s offline
+
+GitHub: https://github.com/yuanacx/minidrop.git
+
+────────────────────────────────────────
+
+七、用户待办
+
+- 按 `docs/DEMO_VIDEO.md` 录制 ≤15min 视频（P0 最后一项）
+- 石墨/Google 表单提交链接
+
+给 DeepSeek：structure.txt + answer15.txt

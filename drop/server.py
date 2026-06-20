@@ -14,11 +14,15 @@ from datetime import datetime, timezone
 from typing import Deque, Dict, List, Optional
 
 import uvicorn
+import requests
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 LOG = logging.getLogger("drop_server")
+
+APISERVER = os.environ.get("APISERVER", "http://apiserver:8191")
+OFFLINE_TIMEOUT_SEC = int(os.environ.get("AGENT_OFFLINE_SEC", "30"))
 
 app = FastAPI(title="Mini-Drop Server")
 
@@ -62,6 +66,17 @@ class TaskResult(BaseModel):
     artifact_type: str = "perf.data"
 
 
+def _persist_audit(event: str, agent_id: str, detail: str = "") -> None:
+    try:
+        requests.post(
+            f"{APISERVER}/api/v1/internal/agent_audit",
+            json={"agent_id": agent_id, "event": event, "detail": detail},
+            timeout=5,
+        )
+    except Exception as exc:
+        LOG.warning("audit persist failed: %s", exc)
+
+
 def audit(event: str, agent_id: str, detail: str = "") -> None:
     entry = {
         "event": event,
@@ -71,6 +86,7 @@ def audit(event: str, agent_id: str, detail: str = "") -> None:
     }
     _audit.append(entry)
     LOG.info("audit %s agent=%s %s", event, agent_id, detail)
+    _persist_audit(event, agent_id, detail)
 
 
 @app.post("/control/create_task")
@@ -93,6 +109,7 @@ def healthcheck(req: HealthCheckRequest):
             "ip_addr": req.ip_addr,
             "online": True,
             "last_seen": now,
+            "last_seen_ts": time.time(),
         }
     if was_offline:
         audit("agent_online", req.agent_id, req.ip_addr)
@@ -118,13 +135,42 @@ def notify_result(result: TaskResult):
     return {"ok": True}
 
 
+def _online_agents_for_ip(target_ip: str) -> List[dict]:
+    """Match agents by IP; host-network agents may register with NIC IP while UI uses 127.0.0.1."""
+    exact = [a for a in _agents.values() if a.get("ip_addr") == target_ip and a.get("online")]
+    if exact:
+        return exact
+    if target_ip == "127.0.0.1":
+        return [a for a in _agents.values() if a.get("online")]
+    return []
+
+
 @app.get("/control/stat_agent")
 def stat_agent(target_ip: str):
-    online_agents = [a for a in _agents.values() if a.get("ip_addr") == target_ip and a.get("online")]
+    online_agents = _online_agents_for_ip(target_ip)
     if not online_agents:
-        return {"online": False, "last_seen": ""}
+        return {"online": False, "last_seen": "", "ip_addr": target_ip}
     a = online_agents[0]
-    return {"online": True, "last_seen": a.get("last_seen", "")}
+    return {
+        "online": True,
+        "last_seen": a.get("last_seen", ""),
+        "ip_addr": a.get("ip_addr", target_ip),
+    }
+
+
+@app.get("/control/list_agents")
+def list_agents():
+    with _lock:
+        items = [
+            {
+                "hostname": info.get("hostname", ""),
+                "ip": info.get("ip_addr", ""),
+                "online": bool(info.get("online")),
+                "last_seen": info.get("last_seen", ""),
+            }
+            for info in _agents.values()
+        ]
+    return {"items": items}
 
 
 @app.get("/audit")
@@ -134,14 +180,16 @@ def list_audit(limit: int = 50):
 
 def offline_watchdog():
     while True:
-        time.sleep(10)
-        cutoff = time.time() - 30
+        time.sleep(OFFLINE_TIMEOUT_SEC)
+        cutoff = time.time() - OFFLINE_TIMEOUT_SEC
         with _lock:
             for aid, info in list(_agents.items()):
-                last = info.get("last_seen_ts", time.time())
+                last = info.get("last_seen_ts")
+                if last is None:
+                    continue
                 if info.get("online") and last < cutoff:
                     info["online"] = False
-                    audit("agent_offline", aid, "heartbeat timeout")
+                    audit("agent_offline", aid, f"heartbeat timeout {OFFLINE_TIMEOUT_SEC}s")
 
 
 @app.on_event("startup")

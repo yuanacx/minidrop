@@ -1,0 +1,92 @@
+【DeepSeek 第 13 问答复】前端 Agent 列表显示「离线」修复
+
+Cursor 已定位根因、改代码、部署 ECS 并验收通过。
+
+────────────────────────────────────────
+
+一、现象
+
+- drop_agent 容器正常，cp sample 持续上传
+- Web 首页 Agent 列表 127.0.0.1 显示「离线」
+- drop_server 无 register 日志（设计如此：走 /healthcheck/do 内存注册，非 DB）
+
+────────────────────────────────────────
+
+二、根因（非数据库缺表）
+
+apiserver GET /api/v1/agents 不查 PostgreSQL agents 表，而是调用 drop_server：
+
+  apiserver → GET drop_server:50051/control/stat_agent?target_ip=127.0.0.1
+
+| 组件 | 实际行为 |
+|------|----------|
+| drop_agent | network_mode: host，心跳上报 ECS 内网 IP（如 172.18.225.143） |
+| 前端 | 默认查 target_ip=127.0.0.1 |
+| 旧 stat_agent | IP 精确匹配 → 查不到 → online:false |
+
+answer8 已对任务队列做 127.0.0.1 回退，但 stat_agent 未同步修复。
+
+models 里只有 AgentAudit 审计表，无 agents 在线表；无需 INSERT 数据库。
+
+────────────────────────────────────────
+
+三、服务器诊断（修复前）
+
+```bash
+curl -s 'http://127.0.0.1:50051/control/stat_agent?target_ip=127.0.0.1'
+# {"online":false,"last_seen":""}
+
+curl -s 'http://127.0.0.1:8191/api/v1/agents?target_ip=127.0.0.1'
+# {"code":0,"data":[{"ip":"127.0.0.1","last_seen":"","online":false}]}
+
+curl -s 'http://127.0.0.1:50051/agents'
+# 404（正确路径为 /control/stat_agent、/control/list_agents）
+```
+
+────────────────────────────────────────
+
+四、代码修改
+
+1. drop/server.py
+   - healthcheck 写入 last_seen_ts（修复 watchdog 不更新导致的状态异常）
+   - stat_agent：target_ip=127.0.0.1 时若无精确匹配，回退任意在线 agent
+   - 新增 GET /control/list_agents 返回全部 agent
+
+2. apiserver/internal/dropclient/client.go
+   - StatAgent 增加返回 ip_addr
+   - 新增 ListAgents() → /control/list_agents
+
+3. apiserver/internal/handlers/handlers.go
+   - listAgents 优先 ListAgents；127.0.0.1 查询时包含 host 网络 agent
+
+────────────────────────────────────────
+
+五、部署与验收（ECS 47.113.102.23）
+
+```bash
+cd /opt/minidrop && docker compose up -d --build drop_server apiserver
+```
+
+修复后：
+
+```json
+// GET /control/stat_agent?target_ip=127.0.0.1
+{"online":true,"last_seen":"2026-06-20T03:18:14.370888+00:00","ip_addr":"172.18.225.143"}
+
+// GET /control/list_agents
+{"items":[{"hostname":"iZwz91cifmdeahlw8q7y21Z","ip":"172.18.225.143","online":true,"last_seen":"..."}]}
+
+// GET /api/v1/agents?target_ip=127.0.0.1
+{"code":0,"data":[{"hostname":"iZwz91cifmdeahlw8q7y21Z","ip":"172.18.225.143","online":true,"last_seen":"..."}]}
+```
+
+Web 首页 Agent 列表应显示「在线」，IP 为实际内网地址。新建采样 target_ip 仍填 127.0.0.1 即可（任务分发回退逻辑不变）。
+
+────────────────────────────────────────
+
+六、后续建议
+
+- 本地 Git 尚未 commit 本次三文件改动，需要时可补一条 feat: fix agent online status for host-network agent
+- 可选：前端默认 target_ip 改为 list_agents 返回的首个在线 IP
+
+给 DeepSeek：structure.txt + answer13.txt
