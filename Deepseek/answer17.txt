@@ -1,0 +1,96 @@
+【DeepSeek 第 17 问答复】P3 Agent 独立二进制 + 自测
+
+Cursor 已完成 PyInstaller 打包与 ECS 心跳验证。
+
+────────────────────────────────────────
+
+一、PyInstaller 结果
+
+### 本地 Windows
+
+```
+PyInstaller 6.21.0 / Python 3.12.4
+Building EXE from EXE-00.toc completed successfully.
+Build complete! The results are available in: drop/dist
+```
+
+| 项 | 值 |
+|----|-----|
+| 产物 | `drop/dist/drop_agent.exe` |
+| 大小 | **12,877,854 字节 (~12.3 MB)** |
+| 构建耗时 | ~37s |
+| `--help` | ✅ |
+| `--version` | `drop_agent 0.1.0` |
+
+### ECS Linux（Ubuntu 22.04 x86_64）
+
+```
+Build complete! The results are available in: drop/dist
+-rwxr-xr-x 1 root root 18M dist/drop_agent
+ELF 64-bit LSB executable, x86-64, dynamically linked
+```
+
+| 项 | 值 |
+|----|-----|
+| 产物 | `/opt/minidrop/drop/dist/drop_agent` |
+| 安装路径 | `/opt/minidrop/bin/drop_agent` |
+| 大小 | **~18 MB** |
+
+────────────────────────────────────────
+
+二、能否在 Linux 运行
+
+| 平台 | 结论 |
+|------|------|
+| Windows `.exe` | 仅 Windows；**不能**在 ECS Linux 运行 |
+| Linux ELF | ✅ ECS 上可执行、可心跳注册 |
+
+Windows 二进制不能替代 Linux 部署；生产必须在 Linux 上 `bash drop/build_agent.sh` 构建。
+
+────────────────────────────────────────
+
+三、ECS 心跳自测
+
+```bash
+docker compose stop drop_agent
+DROP_SERVER=http://127.0.0.1:50051 APISERVER=http://127.0.0.1:8191 AGENT_ID=agent-bin \
+  timeout 12 /opt/minidrop/bin/drop_agent
+curl http://127.0.0.1:50051/control/list_agents
+# → online:true, last_seen 更新
+/opt/minidrop/bin/drop_agent --version  # drop_agent 0.1.0
+docker compose start drop_agent
+```
+
+**结果：心跳注册成功。**
+
+说明：裸机运行时 CP 线程可能报 `perf: No such file or directory`（宿主机未装 linux-tools），与 Docker 容器内不同；心跳与任务调度不受影响。perf/py-spy/bpftrace 仍需宿主机 PATH 安装，PyInstaller 不打包这些外部工具。
+
+────────────────────────────────────────
+
+四、新增/修改文件
+
+| 文件 | 说明 |
+|------|------|
+| drop/drop_agent.spec | PyInstaller 配置 + hiddenimports |
+| drop/build_agent.sh | Linux 一键构建 |
+| drop/agent.py | 增加 `--help` / `--version` |
+| docs/AGENT_BINARY.md | 构建与运行说明 |
+| PLAN.md | P3 状态 ✅ |
+
+Git commit: `feat: add PyInstaller standalone drop_agent binary`
+
+────────────────────────────────────────
+
+五、py-spy 打包说明
+
+py-spy 是**独立 Rust 二进制**，非 Python 模块，无法用 PyInstaller 打入 drop_agent。替代：ECS 上 `pip install py-spy` 或 apt 安装，保证 PATH 有 `py-spy` 即可。
+
+────────────────────────────────────────
+
+六、替代方案（若不用二进制）
+
+- **Docker drop_agent**（当前 compose 默认）：已验证全链路
+- **python3 agent.py**：开发调试
+- **.pyz**：未采用；PyInstaller onefile 已满足 standalone 要求
+
+给 DeepSeek：structure.txt + answer17.txt

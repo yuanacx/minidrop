@@ -124,4 +124,8 @@ project1_MiniDrop/
 | PLAN.md | ✅ |
 | Day1 infra + analysis + proto | ✅ 已创建 |
 | Day2 drop + apiserver | ✅ 已创建 |
-| Day3 web + ext + tests + docs | ✅ 骨架已创建；ECS 联调待做 |
+| Day3 web + ext + tests + docs | ✅ 骨架已创建；ECS 联调 ✅ |
+| P0 演示脚本 | ✅ `docs/DEMO_VIDEO.md` |
+| P1 单测 + 审计 + 30s 离线 | ✅ |
+| P2 py-spy / eBPF / CP Tab | ✅ |
+| **P3 Agent 独立二进制** | ✅ PyInstaller `drop/dist/drop_agent`（Linux 18MB）；ECS 心跳验证通过；见 `docs/AGENT_BINARY.md` |

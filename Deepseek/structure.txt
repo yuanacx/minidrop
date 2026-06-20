@@ -1,6 +1,6 @@
 project1_MiniDrop 工作区结构
 ============================
-更新时间：2026-06-20（P2 扩展 Tab + CP 时间轴，answer16）
+更新时间：2026-06-20（P3 Agent 二进制，answer17）
 
 Tencent_mini/
 ├── INITIAL/
@@ -22,10 +22,10 @@ Tencent_mini/
     ├── .git/                       Git 8 commits → origin main
     └── Deepseek/
         ├── structure.txt           本文件
-        ├── answer1.txt … answer16.txt
+        ├── answer1.txt … answer17.txt
 
 GitHub：https://github.com/yuanacx/minidrop.git
 
 阿里云 ECS：47.113.102.23  全链路+前端+Agent在线 ✅
 
-给 DeepSeek：structure.txt + answer16.txt
+给 DeepSeek：structure.txt + answer17.txt

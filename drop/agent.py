@@ -113,5 +113,15 @@ def heartbeat_loop():
 
 
 if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(description="Mini-Drop drop_agent (heartbeat + collectors)")
+    parser.add_argument("--version", action="store_true", help="print version and exit")
+    args = parser.parse_args()
+    if args.version:
+        print("drop_agent 0.1.0")
+        sys.exit(0)
+
     threading.Thread(target=continuous_profiling_loop, daemon=True).start()
     heartbeat_loop()
