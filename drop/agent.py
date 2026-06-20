@@ -81,8 +81,8 @@ def execute_task(desc: dict) -> None:
             notify_result(task_id, cos_key=key, artifact_type="pyspy.svg")
         elif collector == "bpftrace":
             js = run_bpftrace(duration, out_dir)
-            key = upload_file(task_id, js, "ebpf.json")
-            notify_result(task_id, cos_key=key, artifact_type="ebpf.json")
+            key = upload_file(task_id, js, "bpftrace.json")
+            notify_result(task_id, cos_key=key, artifact_type="bpftrace.json")
         else:
             notify_result(task_id, error=f"unknown collector {collector}")
     except Exception as e:

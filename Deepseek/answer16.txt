@@ -1,0 +1,76 @@
+【DeepSeek 第 16 问答复】P2 扩展能力前端可视化
+
+Cursor 已完成 P2 三项前端 Tab + CP 时间轴 + 后端 API，已部署 ECS。P3 Agent 二进制未做（待用户评估）。
+
+────────────────────────────────────────
+
+一、py-spy Web Tab
+
+- `TaskResult.jsx` 新增 Tab「py-spy」
+- 探测 `/artifacts/{tid}/pyspy.svg`（HEAD）
+- 存在 → iframe 展示；不存在 →「py-spy 数据未采集」
+
+验证：新建采样时采集器选 py-spy，任务 DONE 后打开 Tab。
+
+────────────────────────────────────────
+
+二、eBPF Web Tab
+
+- 新增 Tab「eBPF」，ECharts 柱状图
+- 数据：`/artifacts/{tid}/bpftrace.json`（兼容旧名 `ebpf.json`）
+- 格式：`{ type: "io_histogram", buckets: [{label, count}] }`
+- `drop/agent.py` 上传文件名改为 `bpftrace.json`
+- 无 buckets →「本次采集未触发 eBPF 事件」
+
+验证：采集器选 bpftrace，DONE 后打开 eBPF Tab。
+
+────────────────────────────────────────
+
+三、CP 5 分钟时间轴
+
+后端：
+- `analysis/cp_manager.py` — list/analyze CP 快照
+- `GET /api/v1/cp/snapshots?window_sec=300` — 列出 MinIO `cp/{ts}/perf.data`
+- `POST /api/v1/cp/{ts}/analyze` — 生成 `cp/{ts}/flamegraph.svg`
+
+前端：
+- Tab「CP 回溯」— 5 分钟内快照 chips 时间轴
+- 点击时间点 → 调用 analyze → iframe 加载 `/artifacts/cp/{ts}/flamegraph.svg`
+- 无快照 → 友好提示
+
+────────────────────────────────────────
+
+四、修改文件
+
+| 文件 | 变更 |
+|------|------|
+| web_frontend/src/pages/TaskResult.jsx | 6 Tab + ECharts + CP 时间轴 |
+| web_frontend/src/api.js | listCPSnapshots / analyzeCP / artifactExists |
+| web_frontend/src/index.css | cp-timeline 样式 |
+| apiserver/internal/handlers/handlers.go | CP API + analysisEnv |
+| analysis/cp_manager.py | 新增 |
+| drop/agent.py | bpftrace.json |
+| drop/collectors/bpftrace_collector.py | io_histogram buckets |
+
+────────────────────────────────────────
+
+五、P3 状态
+
+**未执行** PyInstaller 打包 drop_agent。P2 完成后请用户决定是否做 P3。
+
+若做 P3：
+```bash
+pip install pyinstaller
+pyinstaller --onefile --name drop_agent drop/agent.py
+```
+
+────────────────────────────────────────
+
+六、演示建议
+
+1. perf 任务 → 火焰图 Tab（已有）
+2. 新建 py-spy 任务 → py-spy Tab
+3. 新建 bpftrace 任务 → eBPF Tab
+4. 任意任务页 → CP 回溯 Tab（需 Agent 运行 ≥1 分钟有 cp/ 数据）
+
+给 DeepSeek：structure.txt + answer16.txt

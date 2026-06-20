@@ -94,4 +94,12 @@ th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
 .error-text { color: #dc2626; }
 .history-block { margin-top: 20px; font-size: 0.9rem; color: var(--muted); }
 .advice-list { padding-left: 20px; line-height: 1.7; }
+.empty-hint { padding: 24px; text-align: center; color: var(--muted); background: #f9fafb; border-radius: 8px; }
+.cp-timeline { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.cp-chip {
+  background: #f3f4f6; color: var(--text); padding: 6px 12px; border-radius: 999px;
+  font-size: 0.85rem; border: 1px solid var(--border);
+}
+.cp-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.cp-panel { min-height: 240px; }
 code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }

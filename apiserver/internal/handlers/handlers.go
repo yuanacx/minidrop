@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"time"
@@ -54,6 +55,8 @@ func (a *API) Register(r *gin.Engine) {
 	v1.GET("/tasks", a.listTasks)
 	v1.GET("/tasks/:tid", a.getTask)
 	v1.POST("/tasks/:tid/analyze", a.runAnalysis)
+	v1.GET("/cp/snapshots", a.listCPSnapshots)
+	v1.POST("/cp/:ts/analyze", a.analyzeCP)
 	v1.POST("/internal/task_result", a.taskResult)
 	v1.POST("/internal/agent_audit", a.agentAudit)
 }
@@ -178,13 +181,7 @@ func (a *API) runAnalysis(c *gin.Context) {
 	}
 	cmd := exec.Command("python3", "/analysis/hotmethod_analyzer.py",
 		"--task-id", tid, "--cos-key", task.CosKey)
-	cmd.Env = append(os.Environ(),
-		"S3_ENDPOINT="+os.Getenv("S3_ENDPOINT"),
-		"MINIO_ROOT_USER="+os.Getenv("MINIO_ROOT_USER"),
-		"MINIO_ROOT_PASSWORD="+os.Getenv("MINIO_ROOT_PASSWORD"),
-		"MINIO_BUCKET="+os.Getenv("MINIO_BUCKET"),
-		"FLAMEGRAPH_DIR=/opt/FlameGraph",
-	)
+	cmd.Env = append(os.Environ(), a.analysisEnv()...)
 	if err := cmd.Run(); err != nil {
 		c.JSON(500, gin.H{"code": 500, "message": err.Error()})
 		return
@@ -214,4 +211,48 @@ func (a *API) agentAudit(c *gin.Context) {
 		return
 	}
 	c.JSON(200, gin.H{"code": 0})
+}
+
+func (a *API) listCPSnapshots(c *gin.Context) {
+	window := c.DefaultQuery("window_sec", "300")
+	cmd := exec.Command("python3", "/analysis/cp_manager.py", "list", "--window", window)
+	cmd.Env = append(os.Environ(), a.analysisEnv()...)
+	out, err := cmd.Output()
+	if err != nil {
+		c.JSON(500, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(out, &payload); err != nil {
+		c.JSON(500, gin.H{"code": 500, "message": "invalid cp list output"})
+		return
+	}
+	c.JSON(200, gin.H{"code": 0, "data": payload})
+}
+
+func (a *API) analyzeCP(c *gin.Context) {
+	ts := c.Param("ts")
+	cmd := exec.Command("python3", "/analysis/cp_manager.py", "analyze", "--ts", ts)
+	cmd.Env = append(os.Environ(), a.analysisEnv()...)
+	out, err := cmd.Output()
+	if err != nil {
+		c.JSON(500, gin.H{"code": 500, "message": err.Error()})
+		return
+	}
+	var payload map[string]interface{}
+	if err := json.Unmarshal(out, &payload); err != nil {
+		c.JSON(500, gin.H{"code": 500, "message": "invalid cp analyze output"})
+		return
+	}
+	c.JSON(200, gin.H{"code": 0, "data": payload})
+}
+
+func (a *API) analysisEnv() []string {
+	return []string{
+		"S3_ENDPOINT=" + os.Getenv("S3_ENDPOINT"),
+		"MINIO_ROOT_USER=" + os.Getenv("MINIO_ROOT_USER"),
+		"MINIO_ROOT_PASSWORD=" + os.Getenv("MINIO_ROOT_PASSWORD"),
+		"MINIO_BUCKET=" + os.Getenv("MINIO_BUCKET"),
+		"FLAMEGRAPH_DIR=/opt/FlameGraph",
+	}
 }

@@ -18,7 +18,24 @@ export const getTask = (tid) => api.get(`/tasks/${tid}`).then((r) => r.data)
 
 export const runAnalyze = (tid) => api.post(`/tasks/${tid}/analyze`).then((r) => r.data)
 
-/** MinIO 火焰图 / TopN（经 nginx /artifacts/ 反代） */
+export const listCPSnapshots = (window_sec = 300) =>
+  api.get('/cp/snapshots', { params: { window_sec } }).then((r) => r.data)
+
+export const analyzeCP = (ts) => api.post(`/cp/${ts}/analyze`).then((r) => r.data)
+
+/** MinIO 产物（经 nginx /artifacts/ 反代） */
 export const artifactUrl = (tid, name) => `/artifacts/${tid}/${name}`
+
+export const cpArtifactUrl = (ts, name) => `/artifacts/cp/${ts}/${name}`
+
+/** HEAD 探测 MinIO 对象是否存在 */
+export async function artifactExists(url) {
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
 
 export default api

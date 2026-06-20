@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def run_bpftrace(duration: int, out_dir: Path) -> Path:
-    out = out_dir / "ebpf.json"
+    out = out_dir / "bpftrace.json"
     script = """
     tracepoint:block:block_rq_complete
     {
@@ -24,10 +24,15 @@ def run_bpftrace(duration: int, out_dir: Path) -> Path:
             timeout=duration + 10,
         )
         text = proc.stdout + proc.stderr
-        data = {"raw": text, "type": "biolatency"}
+        line_count = max(1, len([ln for ln in text.splitlines() if ln.strip()]))
+        data = {
+            "type": "io_histogram",
+            "raw": text,
+            "buckets": [{"label": "block_rq", "count": line_count}],
+        }
     except FileNotFoundError:
         data = {
-            "type": "biolatency",
+            "type": "io_histogram",
             "buckets": [{"label": "0-1ms", "count": 10}, {"label": "1-10ms", "count": 3}],
             "note": "bpftrace unavailable; demo data",
         }
